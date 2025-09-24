@@ -41,5 +41,18 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: 1
+    uniqueID: 546181351
+    locked: 0
+  - name: 2
+    uniqueID: 3761480241
+    locked: 0
+  - name: 3
+    uniqueID: 3583648545
+    locked: 0
+  - name: 4
+    uniqueID: 4162300653
+    locked: 0
   m_RenderingLayers:
   - Default
+  - Layer 1
