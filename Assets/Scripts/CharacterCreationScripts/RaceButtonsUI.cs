@@ -4,11 +4,11 @@ using UnityEngine.UI;
 public class RaceButtonsUI : MonoBehaviour
 {
     [Header("Panels")]
-    [SerializeField] GameObject racePanel;    // assign your RacePanel (fallback = this GO)
-    [SerializeField] GameObject classPanel;   // assign your ClassPanel (starts INACTIVE)
+    [SerializeField] GameObject racePanel;    // assign RacePanel
+    [SerializeField] GameObject classPanel;   // assign ClassPanel 
 
     [Header("Confirm")]
-    [SerializeField] Button confirmButton;    // make sure this exists in scene
+    [SerializeField] Button confirmButton;    
     [SerializeField] Color normalColor = Color.white;
     [SerializeField] Color selectedColor = new Color(0.90f, 0.85f, 0.70f, 1f);
 
@@ -50,8 +50,7 @@ public class RaceButtonsUI : MonoBehaviour
             {
                 var local = t; // capture
                 if (local.button) local.button.onClick.AddListener(() => OnPick(local));
-                var img = local.GetComponent<Image>();
-                if (img) img.color = normalColor;
+                if (local.img) local.img.color = normalColor;
             }
         }
     }
@@ -62,16 +61,21 @@ public class RaceButtonsUI : MonoBehaviour
 
         // highlight selection
         foreach (var t in tags)
+            if (t.img) t.img.color = (t == picked) ? selectedColor : normalColor;
+
+        // remember selection — runtime + disk
+        if (GameState.Instance)
         {
-            var img = t.GetComponent<Image>();
-            if (img) img.color = (t == picked) ? selectedColor : normalColor;
+            GameState.Instance.SetRace(SelectedRace); // updates GameState.current + timestamp
+            GameState.Instance.Save();                // immediate save
+            Debug.Log($"Save path: {System.IO.Path.Combine(Application.persistentDataPath, GameState.SaveFileName)}");
+
         }
 
-        // remember selection
+        // (Optional legacy UI helpers)
         PlayerPrefs.SetInt("player_race", (int)SelectedRace);
         PlayerPrefs.SetString("player_race_name", SelectedRace.ToString());
         PlayerPrefs.Save();
-        if (GameState.Instance) GameState.Instance.playerRace = SelectedRace;
 
         ShowConfirm();
     }
@@ -82,7 +86,7 @@ public class RaceButtonsUI : MonoBehaviour
 
         confirmButton.gameObject.SetActive(true);
 
-        // Make absolutely sure it's visible and interactive
+        
         var cg = confirmButton.GetComponent<CanvasGroup>();
         if (cg)
         {

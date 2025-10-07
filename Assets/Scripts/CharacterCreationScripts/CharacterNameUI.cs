@@ -12,11 +12,11 @@ public class CharacterNameUI : MonoBehaviour
     [SerializeField] Button confirmButton;
 
     [Header("Panels")]
-    [SerializeField] GameObject namePanel;   // assign your NamePanel 
-    [SerializeField] GameObject racePanel;   // assign your RacePanel 
+    [SerializeField] GameObject namePanel;   // assign NamePanel 
+    [SerializeField] GameObject racePanel;   // assign RacePanel 
 
     [Header("Flow (optional fallback)")]
-    [SerializeField] string nextSceneName = ""; 
+    [SerializeField] string nextSceneName = ""; // leave empty if swapping panels
 
     [Header("Rules")]
     [SerializeField] int minLen = 1;
@@ -24,7 +24,7 @@ public class CharacterNameUI : MonoBehaviour
 
     // optional starter names if user leaves it empty
     string[] fallbackNames = { "Aerin", "Ronan", "Nyra", "Kael", "Mira", "Thorne" };
-    static readonly Regex allowed = new Regex(@"^[A-Za-z0-9 '\-]+$");
+    static readonly Regex allowed = new Regex(@"^[A-Za-z0-9 '\\-]+$");
 
     void Awake()
     {
@@ -39,8 +39,13 @@ public class CharacterNameUI : MonoBehaviour
         if (!namePanel) namePanel = gameObject;
         if (racePanel) racePanel.SetActive(false);
 
-        // Prefill from last time
-        string saved = PlayerPrefs.GetString("player_name", string.Empty);
+        // Prefill from GameState if available; else fallback to PlayerPrefs
+        string saved = "";
+        if (GameState.Instance != null && GameState.Instance.current != null)
+            saved = GameState.Instance.current.characterName ?? "";
+        if (string.IsNullOrEmpty(saved))
+            saved = PlayerPrefs.GetString("player_name", string.Empty);
+
         nameInput.SetTextWithoutNotify(saved);
 
         nameInput.onValueChanged.AddListener(OnNameChanged);
@@ -86,11 +91,18 @@ public class CharacterNameUI : MonoBehaviour
         if (trimmed.Length < minLen) trimmed = fallbackNames[Random.Range(0, fallbackNames.Length)];
         if (trimmed.Length > maxLen) trimmed = trimmed.Substring(0, maxLen);
 
+        // Update runtime state + save to disk
+        if (GameState.Instance)
+        {
+            GameState.Instance.SetName(trimmed); // updates current + timestamps
+            GameState.Instance.Save();           // writes JSON to persistentDataPath
+        }
+
+        // Optional legacy fallback (kept so menus can show name without loading file)
         PlayerPrefs.SetString("player_name", trimmed);
         PlayerPrefs.Save();
-        if (GameState.Instance) GameState.Instance.playerName = trimmed;
 
-        // >>> New: swap to Race panel if assigned; otherwise fall back to scene load
+        // Swap panels (or load a scene if you prefer)
         if (racePanel)
         {
             racePanel.SetActive(true);
