@@ -794,6 +794,7 @@ GameObject:
   - component: {fileID: 232188081}
   - component: {fileID: 232188082}
   - component: {fileID: 232188085}
+  - component: {fileID: 232188086}
   m_Layer: 0
   m_Name: GameLogo
   m_TagString: Untagged
@@ -915,6 +916,24 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &232188086
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 232188080}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48cbdd11f57a52d4cb180abf41c78c5e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ImpactJiggle
+  posAmplitude: 0.1
+  frequency: 100
+  damping: 29
+  duration: 0.2
+  useUnscaledTime: 1
+  squashAmount: 0.155
 --- !u!1 &253034231
 GameObject:
   m_ObjectHideFlags: 0
@@ -5828,12 +5847,12 @@ MonoBehaviour:
     classType: 2
     background: 7
     abilities:
-      Strength: 10
-      Dexterity: 10
-      Constitution: 10
-      Intelligence: 10
-      Wisdom: 10
-      Charisma: 10
+      strength: 10
+      dexterity: 10
+      constitution: 10
+      intelligence: 10
+      wisdom: 10
+      charisma: 10
     selectedSkills: 
     createdAtUtc: 2025-10-06T19:58:35.4503294Z
     lastUpdatedUtc: 2025-10-06T19:58:35.4503294Z
@@ -5878,6 +5897,7 @@ MonoBehaviour:
   optionsClose: {fileID: 1671919711}
   introScene: Intro
   gameScene: Game
+  fadeDuration: 0.35
 --- !u!1 &1451689287
 GameObject:
   m_ObjectHideFlags: 0
@@ -8270,6 +8290,18 @@ MonoBehaviour:
       - m_Target: {fileID: 319724720}
         m_TargetAssemblyTypeName: Light2DFade, Assembly-CSharp
         m_MethodName: PlayInstant
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 232188086}
+        m_TargetAssemblyTypeName: ImpactJiggle, Assembly-CSharp
+        m_MethodName: Play
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
