@@ -111,7 +111,7 @@ public class BackgroundButtonsUI : MonoBehaviour
 
     // data --------------------------------------------------------------------
 
-    List<Skill> GetProficiencies(BackgroundType bg)
+   public static List<Skill> GetProficiencies(BackgroundType bg)
     {
         // BG3 mapping
         switch (bg)

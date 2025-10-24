@@ -1,108 +1,161 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class RaceButtonsUI : MonoBehaviour
 {
     [Header("Panels")]
-    [SerializeField] GameObject racePanel;    // assign RacePanel
-    [SerializeField] GameObject classPanel;   // assign ClassPanel 
+    [SerializeField] GameObject racePanel;
+    [SerializeField] GameObject classPanel;
 
-    [Header("Confirm")]
-    [SerializeField] Button confirmButton;    
+    [Header("UI")]
+    [SerializeField] Button confirmButton;
     [SerializeField] Color normalColor = Color.white;
     [SerializeField] Color selectedColor = new Color(0.90f, 0.85f, 0.70f, 1f);
+
+    [Header("Description Boxes (one per race)")]
+    [SerializeField] TMP_Text humanDescription;
+    [SerializeField] TMP_Text elfDescription;
+    [SerializeField] TMP_Text dwarfDescription;
+    [SerializeField] TMP_Text hellspawnDescription;
+    [SerializeField] TMP_Text dragonHybridDescription;
 
     public Race SelectedRace { get; private set; }
 
     RaceButtonTag[] tags;
+    Dictionary<Race, TMP_Text> raceDescMap;
 
     void Awake()
     {
         if (!racePanel) racePanel = gameObject;
         if (classPanel) classPanel.SetActive(false);
 
-        // Find confirm if not assigned
-        if (!confirmButton)
-        {
-            var go = GameObject.Find("ConfirmButton");
-            if (go) confirmButton = go.GetComponent<Button>();
-        }
-
         if (confirmButton)
         {
             confirmButton.gameObject.SetActive(false);
             confirmButton.onClick.AddListener(Confirm);
         }
-        else
+
+        // Map races to their description boxes
+        raceDescMap = new Dictionary<Race, TMP_Text>
         {
-            Debug.LogWarning("RaceButtonsUI: Confirm Button not assigned and not found in scene.");
+            { Race.Human, humanDescription },
+            { Race.Elf, elfDescription },
+            { Race.Dwarf, dwarfDescription },
+            { Race.HellSpawn, hellspawnDescription },
+            { Race.DragonHybrid, dragonHybridDescription }
+        };
+
+        tags = GetComponentsInChildren<RaceButtonTag>(true);
+        foreach (var t in tags)
+        {
+            var local = t;
+            if (local.button) local.button.onClick.AddListener(() => OnPick(local));
+            var img = local.GetComponent<Image>();
+            if (img) img.color = normalColor;
         }
 
-        // Wire all race buttons by tag
-        tags = GetComponentsInChildren<RaceButtonTag>(true);
-        if (tags == null || tags.Length == 0)
-        {
-            Debug.LogWarning("RaceButtonsUI: No RaceButtonTag found under this object. Add RaceButtonTag to each race button.");
-        }
-        else
-        {
-            foreach (var t in tags)
-            {
-                var local = t; // capture
-                if (local.button) local.button.onClick.AddListener(() => OnPick(local));
-                if (local.img) local.img.color = normalColor;
-            }
-        }
+        // hide all description boxes at start
+        foreach (var kvp in raceDescMap)
+            if (kvp.Value) kvp.Value.gameObject.SetActive(false);
     }
 
     void OnPick(RaceButtonTag picked)
     {
         SelectedRace = picked.race;
 
-        // highlight selection
+        // highlight
         foreach (var t in tags)
-            if (t.img) t.img.color = (t == picked) ? selectedColor : normalColor;
-
-        // remember selection — runtime + disk
-        if (GameState.Instance)
         {
-            GameState.Instance.SetRace(SelectedRace); // updates GameState.current + timestamp
-            GameState.Instance.Save();                // immediate save
-            Debug.Log($"Save path: {System.IO.Path.Combine(Application.persistentDataPath, GameState.SaveFileName)}");
-
+            var img = t.GetComponent<Image>();
+            if (img) img.color = (t == picked) ? selectedColor : normalColor;
         }
 
-        // (Optional legacy UI helpers)
-        PlayerPrefs.SetInt("player_race", (int)SelectedRace);
-        PlayerPrefs.SetString("player_race_name", SelectedRace.ToString());
-        PlayerPrefs.Save();
+        // hide all boxes first
+        foreach (var kvp in raceDescMap)
+            if (kvp.Value) kvp.Value.gameObject.SetActive(false);
 
-        ShowConfirm();
+        // apply & show selected race bonuses
+        ApplyRaceBonuses(SelectedRace);
+        ShowBonusDescription(SelectedRace);
+
+        if (confirmButton) confirmButton.gameObject.SetActive(true);
     }
 
-    void ShowConfirm()
+    void ApplyRaceBonuses(Race race)
     {
-        if (!confirmButton) return;
+        var cd = GameState.Instance.current;
+        var a = cd.abilities;
 
-        confirmButton.gameObject.SetActive(true);
-
-        
-        var cg = confirmButton.GetComponent<CanvasGroup>();
-        if (cg)
+        switch (race)
         {
-            cg.alpha = 1f;
-            cg.interactable = true;
-            cg.blocksRaycasts = true;
+            case Race.Human:
+                a.strength++; a.dexterity++; a.constitution++;
+                a.intelligence++; a.wisdom++; a.charisma++;
+                break;
+            case Race.Elf:
+                a.dexterity += 2; a.intelligence++;
+                break;
+            case Race.Dwarf:
+                a.constitution += 2; a.strength++;
+                break;
+            case Race.HellSpawn:
+                a.charisma += 2; a.wisdom -= 1;
+                break;
+            case Race.DragonHybrid:
+                a.strength += 2; a.constitution++;
+                break;
+        }
+        cd.abilities = a;
+
+        foreach (var s in GetSkillProficiencies(race))
+            if (!cd.selectedSkills.Contains(s)) cd.selectedSkills.Add(s);
+    }
+
+    void ShowBonusDescription(Race race)
+    {
+        if (!raceDescMap.TryGetValue(race, out TMP_Text desc) || !desc) return;
+
+        desc.gameObject.SetActive(true);
+        var lines = new List<string> { $"<b>{race}</b> bonuses:" };
+
+        switch (race)
+        {
+            case Race.Human:
+                lines.Add("+1 to all Abilities");
+                break;
+            case Race.Elf:
+                lines.Add("+2 Dexterity, +1 Intelligence");
+                lines.Add("+1 Perception (skill)");
+                break;
+            case Race.Dwarf:
+                lines.Add("+2 Constitution, +1 Strength");
+                lines.Add("+1 History (skill)");
+                break;
+            case Race.HellSpawn:
+                lines.Add("+2 Charisma, –1 Wisdom");
+                lines.Add("+1 Intimidation (skill)");
+                break;
+            case Race.DragonHybrid:
+                lines.Add("+2 Strength, +1 Constitution");
+                lines.Add("+1 Athletics (skill)");
+                break;
         }
 
-        // If confirm lives under a parent CanvasGroup that was disabled somewhere,
-        // ensure that parent allows interaction:
-        var parentCg = confirmButton.GetComponentInParent<CanvasGroup>();
-        if (parentCg)
+        desc.text = string.Join("\n", lines);
+    }
+
+    static List<Skill> GetSkillProficiencies(Race race)
+    {
+        return race switch
         {
-            parentCg.alpha = Mathf.Max(parentCg.alpha, 1f);
-            parentCg.blocksRaycasts = true;
-        }
+            Race.Elf => new List<Skill> { Skill.Perception },
+            Race.Dwarf => new List<Skill> { Skill.History },
+            Race.HellSpawn => new List<Skill> { Skill.Intimidation },
+            Race.DragonHybrid => new List<Skill> { Skill.Athletics },
+            _ => new List<Skill>()
+        };
     }
 
     void Confirm()
